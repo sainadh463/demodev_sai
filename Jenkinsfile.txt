@@ -1,0 +1,58 @@
+pipeline {
+    
+	agent {label 'jenkins_dind' }
+     environment {
+        GIT_SHA_SHORT="${GIT_COMMIT[0..6]}"
+    }
+	
+	stages {
+		   
+       stage('Checking out demo_common') {
+        steps {
+            sh 'mkdir -p demo_common'
+            dir('demo_common'){
+               
+			   sh """ git clone -b demo_common https://github.com/sainadh463/demo_common.git """
+			   echo "Building demo_common"
+            }
+            
+         }
+	   }
+	   stage('Checking out demo_test') {
+        steps {
+            sh 'mkdir -p demo_test'
+            dir('demo_test'){
+               
+			   sh """ git clone https://github.com/sainadh463/demo_test.git """
+			   echo "Building demo_test"
+            }
+         }
+	   }
+	   stage('TEST') {
+        steps {
+            sh """ echo "run integeration tests here" """
+        }
+       }
+	   stage('DOCKER BUILD') {
+        steps {
+            withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: '***',
+                        usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
+             sh '''
+			    docker login --username $USERNAME --password $PASSWORD
+                sudo docker build -t incxregistry.incx-dev.io/incx_dev/test:${GIT_SHA_SHORT} .
+                sudo docker push incxregistry.incx-dev.io/incx_dev/test:${GIT_SHA_SHORT}
+              '''
+            }
+		  }
+       }
+	   stage('DEPLOY TO DEV ENV') {
+        steps {
+          
+               echo "Deploying to mesos"
+                     
+              }
+          
+        }
+      
+    }
+}	
